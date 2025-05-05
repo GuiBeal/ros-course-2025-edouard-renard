@@ -51,7 +51,7 @@ private:
     }
   }
 
-  long int counter_ = 0;
+  int64_t counter_ = 0;
 
   rclcpp::Subscription<example_interfaces::msg::Int64>::SharedPtr pSubscriber_;
   rclcpp::Publisher<example_interfaces::msg::Int64>::SharedPtr pPublisher_;

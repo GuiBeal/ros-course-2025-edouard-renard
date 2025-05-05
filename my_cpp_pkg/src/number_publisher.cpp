@@ -23,7 +23,7 @@ private:
     pPublisher_->publish(msg);
   }
 
-  long int number_ = 9L;
+  int64_t number_ = 9L;
   rclcpp::Publisher<example_interfaces::msg::Int64>::SharedPtr pPublisher_;
   rclcpp::TimerBase::SharedPtr timer_;
 };
