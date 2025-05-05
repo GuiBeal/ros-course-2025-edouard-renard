@@ -31,10 +31,10 @@ public:
 
 private:
   void callbackCallAddTwoInts(
-      rclcpp::Client<example_interfaces::srv::AddTwoInts>::SharedFutureWithRequest future_response)
+      rclcpp::Client<example_interfaces::srv::AddTwoInts>::SharedFutureWithRequest futureRequestAndResponse)
   {
-    auto pRequest = future_response.get().first;
-    auto pResponse = future_response.get().second;
+    auto pRequest = futureRequestAndResponse.get().first;
+    auto pResponse = futureRequestAndResponse.get().second;
 
     RCLCPP_INFO(this->get_logger(), "%ld + %ld = %ld", pRequest->a, pRequest->b, pResponse->sum);
   }

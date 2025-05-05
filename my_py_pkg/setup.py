@@ -13,7 +13,7 @@ setup(
     install_requires=["setuptools"],
     zip_safe=True,
     maintainer="beal",
-    maintainer_email="guibeal96@gmail.com",
+    maintainer_email="guibeal@guibeal.com",
     description="TODO: Package description",
     license="TODO: License declaration",
     tests_require=["pytest"],
@@ -25,6 +25,7 @@ setup(
             "add_two_ints_server = my_py_pkg.add_two_ints_server:main",
             "add_two_ints_test_client = my_py_pkg.add_two_ints_test_client:main",
             "add_two_ints_client = my_py_pkg.add_two_ints_client:main",
+            "hw_status_publisher = my_py_pkg.hardware_status_publisher:main",
         ],
     },
 )

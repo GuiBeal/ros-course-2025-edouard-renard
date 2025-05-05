@@ -17,7 +17,7 @@ public:
 
 private:
   void callbackAddTwoInts(
-        const example_interfaces::srv::AddTwoInts::Request::SharedPtr pRequest,
+      const example_interfaces::srv::AddTwoInts::Request::SharedPtr pRequest,
       const example_interfaces::srv::AddTwoInts::Response::SharedPtr pResponse)
   {
     pResponse->sum = pRequest->a + pRequest->b;
