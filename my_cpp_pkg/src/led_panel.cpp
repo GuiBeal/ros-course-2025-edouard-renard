@@ -11,6 +11,18 @@ public:
   LedPanelNode()
       : Node("led_panel")
   {
+    this->declare_parameter("led_states", std::vector<int64_t>{0L, 0L, 0L});
+
+    ledStates_ = std::move(this->get_parameter("led_states").as_integer_array());
+    if (!std::all_of(
+            ledStates_.begin(), ledStates_.end(),
+            [](const int &value)
+            { return value == 0 || value == 1; }))
+    {
+      RCLCPP_ERROR(this->get_logger(), "Invalid LED state in led_states parameter.");
+      return;
+    }
+
     pPublisher_ = this->create_publisher<my_robot_interfaces::msg::LedStateArray>("led_panel_state", 10);
     pTimer_ = this->create_wall_timer(5s, std::bind(&LedPanelNode::publishLedState, this));
 
@@ -24,7 +36,7 @@ private:
   void publishLedState()
   {
     auto msg = my_robot_interfaces::msg::LedStateArray();
-    msg.led_states = std::vector<int64_t>(ledStates_.begin(), ledStates_.end());
+    msg.led_states = ledStates_;
     pPublisher_->publish(msg);
   }
 
@@ -53,7 +65,7 @@ private:
     publishLedState();
   }
 
-  std::array<int64_t, 3> ledStates_{0L, 0L, 0L};
+  std::vector<int64_t> ledStates_;
 
   rclcpp::Publisher<my_robot_interfaces::msg::LedStateArray>::SharedPtr pPublisher_;
   rclcpp::TimerBase::SharedPtr pTimer_;
