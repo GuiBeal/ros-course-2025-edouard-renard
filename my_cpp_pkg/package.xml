@@ -5,7 +5,7 @@
   <version>0.0.0</version>
   <description>My C++ package</description>
   <maintainer email="guibeal@guibeal.com">beal</maintainer>
-  <license>TODO: License declaration</license>
+  <license>Unlincensed</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 

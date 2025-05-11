@@ -5,7 +5,7 @@
   <version>0.0.0</version>
   <description>My python package</description>
   <maintainer email="guibeal@guibeal.com">beal</maintainer>
-  <license>TODO: License declaration</license>
+  <license>Unlincensed</license>
 
   <depend>rclpy</depend>
   <depend>example_interfaces</depend>
