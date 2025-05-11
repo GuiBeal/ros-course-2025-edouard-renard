@@ -14,7 +14,7 @@ public:
     robot_name_ = this->get_parameter("robot_name").as_string();
 
     pPublisher_ = this->create_publisher<example_interfaces::msg::String>("robot_news", 10);
-    timer_ = this->create_wall_timer(0.5s, std::bind(&RobotNewsStationNode::publishNews, this));
+    pTimer_ = this->create_wall_timer(0.5s, std::bind(&RobotNewsStationNode::publishNews, this));
 
     RCLCPP_INFO(this->get_logger(), "Robot News Station started.");
   }
@@ -30,7 +30,7 @@ private:
 
   std::string robot_name_;
   rclcpp::Publisher<example_interfaces::msg::String>::SharedPtr pPublisher_;
-  rclcpp::TimerBase::SharedPtr timer_;
+  rclcpp::TimerBase::SharedPtr pTimer_;
 };
 
 int main(int argc, char **argv)

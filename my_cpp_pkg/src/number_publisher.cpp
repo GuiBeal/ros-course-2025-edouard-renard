@@ -19,7 +19,7 @@ public:
         std::bind(&NumberPublisherNode::callbackParameters, this, _1));
 
     pPublisher_ = this->create_publisher<example_interfaces::msg::Int64>("number", 10);
-    timer_ = this->create_wall_timer(
+    pTimer_ = this->create_wall_timer(
         std::chrono::duration<double>(timerPeriod_),
         std::bind(&NumberPublisherNode::publishNumber, this));
 
@@ -45,8 +45,8 @@ private:
       else if (param.get_name() == "timer_period")
       {
         timerPeriod_ = param.as_double();
-        timer_->cancel();
-        timer_ = this->create_wall_timer(
+        pTimer_->cancel();
+        pTimer_ = this->create_wall_timer(
             std::chrono::duration<double>(timerPeriod_),
             std::bind(&NumberPublisherNode::publishNumber, this));
       }
@@ -57,7 +57,7 @@ private:
   double timerPeriod_;
 
   rclcpp::Publisher<example_interfaces::msg::Int64>::SharedPtr pPublisher_;
-  rclcpp::TimerBase::SharedPtr timer_;
+  rclcpp::TimerBase::SharedPtr pTimer_;
 
   PostSetParametersCallbackHandle::SharedPtr pCallbackParams_;
 };
