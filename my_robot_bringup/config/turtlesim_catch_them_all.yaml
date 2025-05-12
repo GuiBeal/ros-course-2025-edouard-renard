@@ -1,0 +1,7 @@
+/turtle_mover:
+  ros__parameters:
+    linear_gain: 1.5
+    angular_gain: 3.0
+
+# /turtle_spawner:
+#  ros__parameters:

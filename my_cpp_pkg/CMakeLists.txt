@@ -7,6 +7,8 @@ endif()
 
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(geometry_msgs REQUIRED)
+find_package(turtlesim REQUIRED)
 find_package(example_interfaces REQUIRED)
 find_package(my_robot_interfaces REQUIRED)
 
@@ -43,6 +45,12 @@ ament_target_dependencies(led_panel rclcpp my_robot_interfaces)
 add_executable(battery src/battery.cpp)
 ament_target_dependencies(battery rclcpp my_robot_interfaces)
 
+add_executable(turtle_mover src/turtle_mover.cpp)
+ament_target_dependencies(turtle_mover rclcpp geometry_msgs turtlesim my_robot_interfaces)
+
+add_executable(turtle_spawner src/turtle_spawner.cpp)
+ament_target_dependencies(turtle_spawner rclcpp turtlesim my_robot_interfaces)
+
 install(TARGETS
   cpp_node
   robot_news_station
@@ -55,6 +63,8 @@ install(TARGETS
   hw_status_publisher
   led_panel
   battery
+  turtle_mover
+  turtle_spawner
   DESTINATION lib/${PROJECT_NAME}
 )
 
