@@ -17,14 +17,14 @@ public:
 
   void callAddTwoInts(const int a, const int b)
   {
-    auto pRequest = std::make_shared<example_interfaces::srv::AddTwoInts::Request>();
-    pRequest->a = a;
-    pRequest->b = b;
-
     while (!pClient_->wait_for_service(1s))
     {
       RCLCPP_WARN(this->get_logger(), "Waiting for Add Two Ints Server...");
     }
+
+    auto pRequest = std::make_shared<example_interfaces::srv::AddTwoInts::Request>();
+    pRequest->a = a;
+    pRequest->b = b;
 
     pClient_->async_send_request(pRequest, std::bind(&AddTwoIntsClientNode::callbackCallAddTwoInts, this, _1));
   }

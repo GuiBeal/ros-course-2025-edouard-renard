@@ -15,12 +15,12 @@ class AddTwoIntsClientNode(Node):
         self.get_logger().info("Add Two Ints Client started.")
 
     def call_add_two_ints(self, a, b):
+        while not self.client_.wait_for_service(timeout_sec=1):
+            self.get_logger().warn("Waiting for Add Two Ints Server...")
+
         request = AddTwoInts.Request()
         request.a = a
         request.b = b
-
-        while not self.client_.wait_for_service(timeout_sec=1):
-            self.get_logger().warn("Waiting for Add Two Ints Server...")
 
         future_response = self.client_.call_async(request)
         future_response.add_done_callback(

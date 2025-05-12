@@ -46,14 +46,14 @@ private:
 
   void callSetLed(const int64_t ledNumber, const int64_t state)
   {
-    auto pRequest = std::make_shared<my_robot_interfaces::srv::SetLed::Request>();
-    pRequest->led_number = ledNumber;
-    pRequest->state = state;
-
     while (!pClient_->wait_for_service(1s))
     {
       RCLCPP_WARN(this->get_logger(), "Waiting for Set LED Server...");
     }
+
+    auto pRequest = std::make_shared<my_robot_interfaces::srv::SetLed::Request>();
+    pRequest->led_number = ledNumber;
+    pRequest->state = state;
 
     pClient_->async_send_request(pRequest, std::bind(&BatteryNode::callbackCallSetLed, this, _1));
   }
