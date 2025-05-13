@@ -23,8 +23,10 @@ public:
       : Node("turtle_spawner"), distributionPosition_(0.0, 11.0), distributionAngle_(-M_PI_2, M_PI_2)
   {
     this->declare_parameter("spawn_frequency", 0.5);
+    this->declare_parameter("turtle_name_prefix", "turtle");
 
     spawnFrequency_ = this->get_parameter("spawn_frequency").as_double();
+    turtleNamePrefix_ = this->get_parameter("turtle_name_prefix").as_string();
 
     pTurtlePublisher_ = this->create_publisher<my_robot_interfaces::msg::TurtleArray>("alive_turtles", 10);
 
@@ -53,6 +55,7 @@ private:
     pRequest->x = distributionPosition_(gen);
     pRequest->y = distributionPosition_(gen);
     pRequest->theta = distributionAngle_(gen);
+    pRequest->name = turtleNamePrefix_ + std::to_string(spawnCount_++);
 
     pSpawnClient_->async_send_request(pRequest, std::bind(&TurtleSpawnerNode::callbackCallSpawn, this, _1));
   }
@@ -124,6 +127,9 @@ private:
   double spawnFrequency_;
   rclcpp::TimerBase::SharedPtr pSpawnTimer_;
   rclcpp::Client<turtlesim::srv::Spawn>::SharedPtr pSpawnClient_;
+
+  std::string turtleNamePrefix_;
+  uint64_t spawnCount_ = 1;
 
   rclcpp::Service<my_robot_interfaces::srv::CatchTurtle>::SharedPtr pCacthTurtleServer_;
 
