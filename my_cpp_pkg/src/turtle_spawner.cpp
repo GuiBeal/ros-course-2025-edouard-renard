@@ -2,7 +2,9 @@
 
 #include <rclcpp/rclcpp.hpp>
 #include <turtlesim/srv/spawn.hpp>
+#include <turtlesim/srv/kill.hpp>
 #include <my_robot_interfaces/msg/turtle_array.hpp>
+#include <my_robot_interfaces/srv/catch_turtle.hpp>
 
 using namespace std::placeholders;
 using namespace std::chrono_literals;
@@ -30,6 +32,12 @@ public:
                                            std::bind(&TurtleSpawnerNode::callSpawn, this));
     pSpawnClient_ = this->create_client<turtlesim::srv::Spawn>("/spawn");
 
+    pCacthTurtleServer_ = this->create_service<my_robot_interfaces::srv::CatchTurtle>(
+        "catch_turtle",
+        std::bind(&TurtleSpawnerNode::callbackCatchTurtle, this, _1, _2));
+
+    pKillClient_ = this->create_client<turtlesim::srv::Kill>("/kill");
+
     RCLCPP_INFO(this->get_logger(), "Turtle Spawner started.");
   }
 
@@ -54,36 +62,58 @@ private:
     const auto pRequest = futureRequestResponse.get().first;
     const auto pResponse = futureRequestResponse.get().second;
 
-    if (pResponse->name.empty()) {
+    if (pResponse->name.empty())
+    {
       RCLCPP_WARN(this->get_logger(), "Failed to spawn turtle.");
       return;
     }
 
-    aliveTurtles_.emplace_back(std::make_tuple(pResponse->name, pRequest->x, pRequest->y));
-    publishTurtles();
+    auto turtle = my_robot_interfaces::msg::Turtle();
+    turtle.name = pResponse->name;
+    turtle.x = pRequest->x;
+    turtle.y = pRequest->y;
 
     RCLCPP_INFO(this->get_logger(), "Spawned turtle '%s' at (%.3f,%.3f)",
-                pResponse->name.c_str(), pRequest->x, pRequest->y);
+                turtle.name.c_str(), turtle.x, turtle.y);
+
+    aliveTurtles_.data.emplace_back(std::move(turtle));
+    publishTurtles();
   }
 
   void publishTurtles()
   {
-    auto msg = my_robot_interfaces::msg::TurtleArray();
-
-    for (const auto &aliveTurtle : aliveTurtles_)
-    {
-      auto turtle = my_robot_interfaces::msg::Turtle();
-      turtle.name = std::get<Turtle::name>(aliveTurtle);
-      turtle.x = std::get<Turtle::x>(aliveTurtle);
-      turtle.y = std::get<Turtle::y>(aliveTurtle);
-
-      msg.data.emplace_back(std::move(turtle));
-    }
-
-    pTurtlePublisher_->publish(msg);
+    pTurtlePublisher_->publish(aliveTurtles_);
   }
 
-  std::vector<std::tuple<std::string, float, float>> aliveTurtles_;
+  void callbackCatchTurtle(const my_robot_interfaces::srv::CatchTurtle::Request::SharedPtr pRequest,
+                           const my_robot_interfaces::srv::CatchTurtle::Response::SharedPtr pResponse)
+  {
+    const auto it = std::find_if(aliveTurtles_.data.begin(), aliveTurtles_.data.end(),
+                                 [pRequest](const my_robot_interfaces::msg::Turtle &turtle)
+                                 { return turtle.name == pRequest->name; });
+    if (it == aliveTurtles_.data.end())
+    {
+      pResponse->success = false;
+      return;
+    }
+
+    while (!pKillClient_->wait_for_service(1s))
+    {
+      RCLCPP_WARN(this->get_logger(), "Waiting for Kill Server...");
+    }
+
+    auto pKillRequest = std::make_shared<turtlesim::srv::Kill::Request>();
+    pKillRequest->name = pRequest->name;
+    pKillClient_->async_send_request(pKillRequest);
+
+    aliveTurtles_.data.erase(it);
+
+    pResponse->success = true;
+
+    publishTurtles();
+  }
+
+  my_robot_interfaces::msg::TurtleArray aliveTurtles_;
 
   std::default_random_engine gen;
   std::uniform_real_distribution<float> distributionPosition_;
@@ -94,6 +124,10 @@ private:
   double spawnFrequency_;
   rclcpp::TimerBase::SharedPtr pSpawnTimer_;
   rclcpp::Client<turtlesim::srv::Spawn>::SharedPtr pSpawnClient_;
+
+  rclcpp::Service<my_robot_interfaces::srv::CatchTurtle>::SharedPtr pCacthTurtleServer_;
+
+  rclcpp::Client<turtlesim::srv::Kill>::SharedPtr pKillClient_;
 };
 
 int main(int argc, char **argv)

@@ -1,9 +1,11 @@
+#include <algorithm>
 #include <cmath>
 
 #include <rclcpp/rclcpp.hpp>
 #include <geometry_msgs/msg/twist.hpp>
 #include <turtlesim/msg/pose.hpp>
 #include <my_robot_interfaces/msg/turtle_array.hpp>
+#include <my_robot_interfaces/srv/catch_turtle.hpp>
 
 using namespace std::placeholders;
 
@@ -28,12 +30,14 @@ public:
     this->declare_parameter("linear_gain", 1.0);
     this->declare_parameter("angular_gain", 1.0);
     this->declare_parameter("turtle_name", "turtle1");
+    this->declare_parameter("catch_closest_turtle_first", false);
 
     timerPeriod_ = this->get_parameter("timer_period").as_double();
     distanceTolerance_ = this->get_parameter("distance_tolerance").as_double();
     gainProportionalLinear_ = this->get_parameter("linear_gain").as_double();
     gainProportionalAngular_ = this->get_parameter("angular_gain").as_double();
     turtleName_ = this->get_parameter("turtle_name").as_string();
+    catchClosestFirst_ = this->get_parameter("catch_closest_turtle_first").as_bool();
 
     pPoseSubscriber_ = this->create_subscription<turtlesim::msg::Pose>(
         turtleName_ + "/pose", 10, std::bind(&TurtleMoverNode::callbackPose, this, _1));
@@ -45,6 +49,8 @@ public:
     pCommandTimer_ = this->create_wall_timer(
         std::chrono::duration<double>(timerPeriod_), std::bind(&TurtleMoverNode::callbackMove, this));
 
+    pCatchTurtleClient_ = this->create_client<my_robot_interfaces::srv::CatchTurtle>("catch_turtle");
+
     RCLCPP_INFO(this->get_logger(), "Turtle Mover started.");
   }
 
@@ -54,28 +60,41 @@ private:
     pTurtlePose_ = pPose;
   }
 
-  void callbackAliveTurtles(const my_robot_interfaces::msg::TurtleArray::ConstSharedPtr pMsg)
+  void callbackAliveTurtles(const my_robot_interfaces::msg::TurtleArray::ConstSharedPtr pTurtles)
   {
-    if (pMsg->data.empty())
+    if (pTurtles->data.empty())
     {
-      pObjectivePose_ = nullptr;
+      pObjectiveTurtle_ = nullptr;
       return;
     }
 
-    pObjectivePose_ = std::make_shared<turtlesim::msg::Pose>();
-    pObjectivePose_->x = pMsg->data.front().x;
-    pObjectivePose_->y = pMsg->data.front().y;
+    if (catchClosestFirst_)
+    {
+      auto it = std::min_element(pTurtles->data.begin(), pTurtles->data.end(),
+                                 [this](const my_robot_interfaces::msg::Turtle &turtleA,
+                                        const my_robot_interfaces::msg::Turtle &turtleB)
+                                 { return std::sqrt(std::pow(turtleA.x - pTurtlePose_->x, 2) +
+                                                    std::pow(turtleA.y - pTurtlePose_->y, 2)) <
+                                          std::sqrt(std::pow(turtleB.x - pTurtlePose_->x, 2) +
+                                                    std::pow(turtleB.y - pTurtlePose_->y, 2)); });
+
+      pObjectiveTurtle_ = std::make_shared<my_robot_interfaces::msg::Turtle>(*it);
+    }
+    else
+    {
+      pObjectiveTurtle_ = std::make_shared<my_robot_interfaces::msg::Turtle>(pTurtles->data.front());
+    }
   }
 
   void callbackMove()
   {
-    if (!pTurtlePose_ || !pObjectivePose_)
+    if (!pTurtlePose_ || !pObjectiveTurtle_)
     {
       return;
     }
 
-    const auto xError = pObjectivePose_->x - pTurtlePose_->x;
-    const auto yError = pObjectivePose_->y - pTurtlePose_->y;
+    const auto xError = pObjectiveTurtle_->x - pTurtlePose_->x;
+    const auto yError = pObjectiveTurtle_->y - pTurtlePose_->y;
     const auto distanceError = std::sqrt(std::pow(xError, 2) + std::pow(yError, 2));
 
     auto msgCommand = geometry_msgs::msg::Twist();
@@ -83,6 +102,8 @@ private:
     {
       msgCommand.linear.x = 0;
       msgCommand.angular.y = 0;
+
+      callCatchTurtle(pObjectiveTurtle_);
     }
     else
     {
@@ -96,12 +117,27 @@ private:
     pCommandPublisher_->publish(msgCommand);
   }
 
+  void callCatchTurtle(my_robot_interfaces::msg::Turtle::SharedPtr pTurtle)
+  {
+    if (!pTurtle)
+    { // TODO change to assert
+      return;
+    }
+
+    auto pRequest = std::make_shared<my_robot_interfaces::srv::CatchTurtle::Request>();
+    pRequest->name = pTurtle->name;
+
+    pCatchTurtleClient_->async_send_request(pRequest);
+  }
+
   double timerPeriod_;
 
   std::string turtleName_;
   turtlesim::msg::Pose::ConstSharedPtr pTurtlePose_ = nullptr;
 
-  turtlesim::msg::Pose::SharedPtr pObjectivePose_ = nullptr;
+  my_robot_interfaces::msg::Turtle::SharedPtr pObjectiveTurtle_ = nullptr;
+
+  bool catchClosestFirst_;
 
   double distanceTolerance_;
   double gainProportionalLinear_;
@@ -112,6 +148,8 @@ private:
 
   rclcpp::TimerBase::SharedPtr pCommandTimer_;
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr pCommandPublisher_;
+
+  rclcpp::Client<my_robot_interfaces::srv::CatchTurtle>::SharedPtr pCatchTurtleClient_;
 };
 
 int main(int argc, char **argv)
